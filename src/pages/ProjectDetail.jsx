@@ -3,10 +3,11 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, AlertTriangle, FolderOpen } from "lucide-react";
+import { ArrowLeft, Plus, AlertTriangle, FolderOpen, Folder } from "lucide-react";
 import TopicCard from "@/components/topics/TopicCard";
 import CreateTopicDialog from "@/components/topics/CreateTopicDialog";
 import EmptyState from "@/components/shared/EmptyState";
+import UpdateCard from "@/components/updates/UpdateCard";
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
@@ -50,9 +51,24 @@ export default function ProjectDetail() {
     );
   }
 
-  const pendingDecisions = updates.filter(
+  const pendingUpdates = updates.filter(
     (u) => u.needs_decision && u.decision_status === "pending"
-  ).length;
+  );
+  const pendingDecisions = pendingUpdates.length;
+
+  const topicById = Object.fromEntries(topics.map((t) => [t.id, t]));
+
+  const handleDecision = async (update, status, note) => {
+    await base44.entities.Update.update(update.id, {
+      decision_status: status,
+      decision_note: note || undefined,
+      decided_by: user?.full_name || "Unknown",
+      decided_at: new Date().toISOString(),
+    });
+    queryClient.invalidateQueries({ queryKey: ["updates", projectId] });
+  };
+
+  const isAdmin = user?.role === "admin";
 
   const sortedTopics = [...topics].sort((a, b) => {
     if (a.is_default) return -1;
@@ -89,11 +105,40 @@ export default function ProjectDetail() {
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {pendingDecisions > 0 && (
-          <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <p className="text-sm font-medium text-amber-800">
-              {pendingDecisions} item{pendingDecisions !== 1 ? "s" : ""} need{pendingDecisions === 1 ? "s" : ""} your decision
-            </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <p className="text-sm font-medium text-amber-800">
+                {pendingDecisions} item{pendingDecisions !== 1 ? "s" : ""} need{pendingDecisions === 1 ? "s" : ""} a decision
+              </p>
+            </div>
+
+            {pendingUpdates.map((update) => {
+              const topic = topicById[update.topic_id];
+              return (
+                <div key={update.id} className="space-y-1.5">
+                  {topic && (
+                    <Link
+                      to={`/project/${projectId}/topic/${topic.id}`}
+                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+                    >
+                      <Folder className="w-3.5 h-3.5" />
+                      {topic.name}
+                    </Link>
+                  )}
+                  <UpdateCard
+                    update={update}
+                    isAdmin={isAdmin}
+                    currentUserId={user?.id}
+                    onDecision={handleDecision}
+                    onDeleteFile={() => {}}
+                    onReupload={() => {}}
+                  />
+                </div>
+              );
+            })}
+
+            <div className="border-t border-border/40 pt-2" />
           </div>
         )}
 
