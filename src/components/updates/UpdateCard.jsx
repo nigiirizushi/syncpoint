@@ -1,47 +1,57 @@
 import { useState } from "react";
-import { FileText, Image, FileSpreadsheet, File, Download, Trash2, User } from "lucide-react";
+import { User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/shared/StatusBadge";
-import FreshDot from "@/components/shared/FreshDot";
 import RelativeDate from "@/components/shared/RelativeDate";
-import { formatFileSize, getFileIcon, isNew } from "@/lib/helpers";
+import FileRow from "@/components/updates/FileRow";
+import { isNew } from "@/lib/helpers";
 
-const iconMap = {
-  pdf: FileText,
-  image: Image,
-  word: FileText,
-  spreadsheet: FileSpreadsheet,
-  presentation: FileText,
-  file: File,
-};
-
-export default function UpdateCard({ update, isAdmin, currentUserId, onDecision, onDeleteFile }) {
+export default function UpdateCard({
+  update,
+  isAdmin,
+  currentUserId,
+  onDecision,
+  onDeleteFile,
+  onReupload,
+}) {
   const deletedIndices = update.deleted_file_indices || [];
-  const files = (update.file_urls || []).map((url, i) => ({
-    url,
-    name: update.file_names?.[i] || "File",
-    size: update.file_sizes?.[i] || 0,
-    index: i,
-    isDeleted: deletedIndices.includes(i),
-  })).filter((f) => !f.isDeleted);
+  const files = (update.file_urls || [])
+    .map((url, i) => ({
+      url,
+      name: update.file_names?.[i] || "File",
+      size: update.file_sizes?.[i] || 0,
+      index: i,
+      isDeleted: deletedIndices.includes(i),
+    }))
+    .filter((f) => !f.isDeleted);
 
-  const canDeleteFile = (fileIndex) => {
-    return isAdmin || update.created_by_id === currentUserId;
-  };
+  const canEdit = isAdmin || update.created_by_id === currentUserId;
+  const updateIsNew = isNew(update.created_date);
+
+  // Version re-upload tag — show if this update was a re-upload of a prior file
+  const isVersion = !!update.version_of_file;
 
   return (
-    <div className="bg-card rounded-2xl border border-border/60 p-5 space-y-3">
+    <div className={`bg-card rounded-2xl border p-5 space-y-3 transition-colors ${
+      updateIsNew ? "border-emerald-200/80" : "border-border/60"
+    }`}>
+      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
             <User className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
-            <span className="text-sm font-medium">{update.author_name}</span>
             <div className="flex items-center gap-2">
-              <RelativeDate date={update.created_date} />
-              {isNew(update.created_date) && <StatusBadge status="new" />}
+              <span className="text-sm font-medium">{update.author_name}</span>
+              {isVersion && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded">
+                  new version
+                </span>
+              )}
+              {updateIsNew && <StatusBadge status="new" />}
             </div>
+            <RelativeDate date={update.created_date} />
           </div>
         </div>
 
@@ -52,51 +62,39 @@ export default function UpdateCard({ update, isAdmin, currentUserId, onDecision,
         )}
       </div>
 
+      {/* Version context */}
+      {isVersion && (
+        <p className="text-xs text-muted-foreground bg-blue-50/50 border border-blue-100 rounded-lg px-3 py-2">
+          New version of <span className="font-medium">{update.version_of_file}</span>
+        </p>
+      )}
+
+      {/* Note text */}
       {update.text && (
         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
           {update.text}
         </p>
       )}
 
+      {/* Files */}
       {files.length > 0 && (
         <div className="space-y-1.5 pt-1">
-          {files.map((file) => {
-            const type = getFileIcon(file.name);
-            const Icon = iconMap[type] || File;
-            return (
-              <div
-                key={file.index}
-                className="flex items-center gap-3 p-2.5 bg-muted/40 rounded-lg group"
-              >
-                <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm font-medium truncate flex-1">{file.name}</span>
-                {isNew(update.created_date) && (
-                  <StatusBadge status="new" className="text-[10px] px-1.5 py-0" />
-                )}
-                <span className="text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
-                <a
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </a>
-                {canDeleteFile(file.index) && (
-                  <button
-                    onClick={() => onDeleteFile(update, file.index)}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-1 opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {files.map((file) => (
+            <FileRow
+              key={file.index}
+              file={file}
+              isNew={updateIsNew}
+              canDelete={canEdit}
+              canReupload={canEdit}
+              onDelete={() => onDeleteFile(update, file.index)}
+              onReupload={(f, newFile) => onReupload(update, f, newFile)}
+            />
+          ))}
         </div>
       )}
 
-      {update.decision_status !== "pending" && update.needs_decision && (
+      {/* Decision result */}
+      {update.needs_decision && update.decision_status !== "pending" && (
         <div className="mt-2 p-3 bg-muted/50 rounded-xl border border-border/40">
           <p className="text-xs text-muted-foreground mb-1">
             Decision by {update.decided_by} · <RelativeDate date={update.decided_at} />
@@ -107,6 +105,7 @@ export default function UpdateCard({ update, isAdmin, currentUserId, onDecision,
         </div>
       )}
 
+      {/* Admin decision actions */}
       {isAdmin && update.needs_decision && update.decision_status === "pending" && (
         <DecisionActions update={update} onDecision={onDecision} />
       )}
@@ -159,12 +158,7 @@ function DecisionActions({ update, onDecision }) {
             Add note
           </Button>
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDecision("noted")}
-            disabled={loading}
-          >
+          <Button size="sm" variant="outline" onClick={() => handleDecision("noted")} disabled={loading}>
             Save note
           </Button>
         )}

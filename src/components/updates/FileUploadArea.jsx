@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Upload, X, FileText, Image, FileSpreadsheet, File, AlertTriangle, Loader2 } from "lucide-react";
-import { formatFileSize, getFileIcon } from "@/lib/helpers";
+import { formatFileSize, getFileIcon, ACCEPTED_FILE_TYPES, ACCEPTED_FILE_LABEL } from "@/lib/helpers";
 import { base44 } from "@/api/base44Client";
 
 const iconMap = {
@@ -109,9 +109,11 @@ export default function FileUploadArea({ onSubmit, isSubmitting }) {
             ref={fileInputRef}
             type="file"
             multiple
+            accept={ACCEPTED_FILE_TYPES}
             className="hidden"
             onChange={handleFileSelect}
           />
+          <span className="text-xs text-muted-foreground hidden sm:block">{ACCEPTED_FILE_LABEL}</span>
 
           <div className="flex items-center gap-2">
             <Switch

@@ -80,6 +80,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "version_of_file": {
+      "type": "string",
+      "description": "Original filename this update is a new version of (set when re-uploading)"
     }
   },
   "required": [

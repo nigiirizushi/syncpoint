@@ -80,6 +80,26 @@ export default function TopicDetail() {
     queryClient.invalidateQueries({ queryKey: ["updates"] });
   };
 
+  // Re-upload workflow: download → edit in WPS/external app → re-upload here.
+  // Creates a NEW update so the history is preserved and the latest version
+  // is always at the top. The original update is left untouched.
+  const handleReupload = async (originalUpdate, originalFile, newFile) => {
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: newFile });
+    await base44.entities.Update.create({
+      project_id: projectId,
+      topic_id: topicId,
+      author_name: user?.full_name || "Unknown",
+      text: "",
+      needs_decision: false,
+      decision_status: "pending",
+      file_urls: [file_url],
+      file_names: [newFile.name],
+      file_sizes: [newFile.size],
+      version_of_file: originalFile.name,
+    });
+    queryClient.invalidateQueries({ queryKey: ["updates"] });
+  };
+
   const isAdmin = user?.role === "admin";
 
   const filteredUpdates = updates.filter((u) => {
@@ -144,6 +164,7 @@ export default function TopicDetail() {
                 currentUserId={user?.id}
                 onDecision={handleDecision}
                 onDeleteFile={handleDeleteFile}
+                onReupload={handleReupload}
               />
             ))}
           </div>
