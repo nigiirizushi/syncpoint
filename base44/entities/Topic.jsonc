@@ -1,0 +1,23 @@
+{
+  "name": "Topic",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Topic/folder name"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Parent project ID"
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the default General topic"
+    }
+  },
+  "required": [
+    "name",
+    "project_id"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "name": "Update",
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "Update note text"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Parent project ID"
+    },
+    "topic_id": {
+      "type": "string",
+      "description": "Parent topic ID"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of the person who posted"
+    },
+    "needs_decision": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this update needs a decision from the boss"
+    },
+    "decision_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "noted"
+      ],
+      "default": "pending",
+      "description": "Decision status if needs_decision is true"
+    },
+    "decision_note": {
+      "type": "string",
+      "description": "Note from boss when making a decision"
+    },
+    "decided_by": {
+      "type": "string",
+      "description": "Name of person who made the decision"
+    },
+    "decided_at": {
+      "type": "string",
+      "description": "When the decision was made"
+    },
+    "file_urls": {
+      "type": "array",
+      "description": "Uploaded file URLs",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_names": {
+      "type": "array",
+      "description": "Original file names",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_sizes": {
+      "type": "array",
+      "description": "File sizes in bytes",
+      "items": {
+        "type": "number"
+      }
+    },
+    "deleted_file_indices": {
+      "type": "array",
+      "description": "Indices of soft-deleted files",
+      "items": {
+        "type": "number"
+      }
+    },
+    "deleted_file_dates": {
+      "type": "array",
+      "description": "Dates when files were soft-deleted",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "project_id",
+    "topic_id",
+    "author_name"
+  ]
+}
